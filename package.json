@@ -1,0 +1,46 @@
+{
+  "name": "tanuki-legion",
+  "version": "0.1.0",
+  "type": "module",
+  "bin": {
+    "legion": "./bin/legion"
+  },
+  "scripts": {
+    "dev": "bun run --conditions=browser ./src/index.ts",
+    "build": "bun build ./src/index.ts --compile --outfile legion",
+    "typecheck": "tsc --noEmit",
+    "test": "bun test"
+  },
+  "dependencies": {
+    "socket.io-client": "^4.7.4",
+    "better-sqlite3": "^9.4.0",
+    "@opentui/core": "0.1.73",
+    "@opentui/solid": "0.1.73",
+    "solid-js": "^1.8.15",
+    "chokidar": "4.0.3",
+    "zod": "^3.22.4",
+    "bun-pty": "0.4.4",
+    "clipboardy": "4.0.0",
+    "diff": "^5.2.0",
+    "fuzzysort": "3.1.0",
+    "ignore": "7.0.5",
+    "jsonc-parser": "3.3.1",
+    "minimatch": "10.0.3",
+    "open": "10.1.2",
+    "opentui-spinner": "0.0.6",
+    "strip-ansi": "7.1.2",
+    "tree-sitter-bash": "0.25.0",
+    "turndown": "7.2.0",
+    "ulid": "^2.3.0",
+    "web-tree-sitter": "0.25.10",
+    "xdg-basedir": "5.1.0",
+    "yargs": "18.0.0"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.9",
+    "@types/bun": "latest",
+    "@types/node": "^20.11.0",
+    "@types/yargs": "17.0.33",
+    "typescript": "^5.3.3"
+  }
+}
