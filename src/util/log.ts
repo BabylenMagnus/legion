@@ -1,10 +1,11 @@
 import path from "path"
 import fs from "fs/promises"
-import { Global } from "../global"
+import { createWriteStream } from "fs"
+import { Global } from "../core/global"
 import z from "zod"
 
 export namespace Log {
-  export const Level = z.enum(["DEBUG", "INFO", "WARN", "ERROR"]).meta({ ref: "LogLevel", description: "Log level" })
+  export const Level = z.enum(["DEBUG", "INFO", "WARN", "ERROR"])
   export type Level = z.infer<typeof Level>
 
   const levelPriority: Record<Level, number> = {
@@ -55,36 +56,49 @@ export namespace Log {
     return msg.length
   }
 
+  let logStream: ReturnType<typeof createWriteStream> | null = null;
+
   export async function init(options: Options) {
     if (options.level) level = options.level
-    cleanup(Global.Path.log)
+    
+    // Initialize Global paths if needed
+    await Global.init().catch(() => {})
+    
+    cleanup(Global.Path.log).catch(() => {})
     if (options.print) return
     logpath = path.join(
       Global.Path.log,
       options.dev ? "dev.log" : new Date().toISOString().split(".")[0].replace(/:/g, "") + ".log",
     )
-    const logfile = Bun.file(logpath)
-    await fs.truncate(logpath).catch(() => {})
-    const writer = logfile.writer()
-    write = async (msg: any) => {
-      const num = writer.write(msg)
-      writer.flush()
-      return num
+    
+    // Use Node.js fs instead of Bun.file for compatibility
+    try {
+      await fs.writeFile(logpath, "", { flag: "w" })
+      logStream = createWriteStream(logpath, { flags: "a" })
+    } catch {}
+    
+    write = (msg: any) => {
+      if (logStream) {
+        const written = logStream.write(msg)
+        return written ? msg.length : 0
+      }
+      // Fallback to stderr if stream not available
+      process.stderr.write(msg)
+      return msg.length
     }
   }
 
   async function cleanup(dir: string) {
-    const glob = new Bun.Glob("????-??-??T??????.log")
-    const files = await Array.fromAsync(
-      glob.scan({
-        cwd: dir,
-        absolute: true,
-      }),
-    )
-    if (files.length <= 5) return
+    try {
+      const files = await fs.readdir(dir)
+      const logFiles = files.filter(f => /^\d{4}-\d{2}-\d{2}T\d{6}\.log$/.test(f))
+      if (logFiles.length <= 5) return
 
-    const filesToDelete = files.slice(0, -10)
-    await Promise.all(filesToDelete.map((file) => fs.unlink(file).catch(() => {})))
+      const filesToDelete = logFiles.slice(0, -10)
+      await Promise.all(filesToDelete.map((file) => fs.unlink(path.join(dir, file)).catch(() => {})))
+    } catch {
+      // Directory doesn't exist, ignore
+    }
   }
 
   function formatError(error: Error, depth = 0): string {

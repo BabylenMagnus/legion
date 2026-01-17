@@ -1,13 +1,28 @@
 {
-  "name": "tanuki-legion",
-  "version": "0.1.0",
-  "type": "module",
-  "bin": {
-    "legion": "./bin/legion"
+  "name": "@babylen/legion",
+  "version": "0.1.1",
+  "description": "Legion agent for connecting devices to Tanuki Cloud",
+  "main": "./dist/index.js",
+  "keywords": [
+    "legion"
+  ],
+  "author": "",
+  "license": "PROPRIETARY",
+  "engines": {
+    "node": ">=18.0.0"
   },
+  "bin": {
+    "legion": "./dist/index.js"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "package.json"
+  ],
   "scripts": {
     "dev": "bun run --conditions=browser ./src/index.ts",
-    "build": "bun build ./src/index.ts --compile --outfile legion",
+    "build": "tsup",
+    "prepublishOnly": "npm run build",
     "typecheck": "tsc --noEmit",
     "test": "bun test"
   },
@@ -37,10 +52,15 @@
     "yargs": "18.0.0"
   },
   "devDependencies": {
+    "@tsconfig/bun": "^1.0.4",
     "@types/better-sqlite3": "^7.6.9",
     "@types/bun": "latest",
-    "@types/node": "^20.11.0",
+    "@types/node": "^25.0.9",
     "@types/yargs": "17.0.33",
-    "typescript": "^5.3.3"
-  }
+    "tsup": "^8.5.1",
+    "typescript": "^5.9.3"
+  },
+  "trustedDependencies": [
+    "tree-sitter-bash"
+  ]
 }

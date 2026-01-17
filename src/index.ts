@@ -1,25 +1,53 @@
+#!/usr/bin/env node
+
 // tanuki_legion/src/index.ts
 import { io } from "socket.io-client";
 import { type Socket } from "socket.io-client";
-import os from "os";
+import * as os from "os";
+import { readFileSync } from "fs";
+import { join } from "path";
 import { getConfig } from "./core/config";
 import { Log } from "./util/log";
+import { Global } from "./core/global";
 
-// Initialize logging (simplified for Legion - always print to console)
-const log = Log.create({ service: "legion" });
+// Read version from package.json (without importing to avoid bundling issues)
+// After build, package.json is in the project root, dist/index.js is in dist/
+const packageJsonPath = join(__dirname, "..", "package.json");
+let version = "0.0.0";
+try {
+  const packageJson = JSON.parse(readFileSync(packageJsonPath, "utf-8"));
+  version = packageJson.version;
+} catch {
+  // Fallback if package.json not found (shouldn't happen in production)
+  version = "0.0.0";
+}
 
 async function main() {
+  // Check for --version or -v flag FIRST, before any initialization
+  if (process.argv.includes("--version") || process.argv.includes("-v")) {
+    console.log(version);
+    process.exit(0);
+  }
+
   try {
+    // Initialize logging (simplified for Legion - always print to console)
+    const log = Log.create({ service: "legion" });
+    
+    // Initialize Global paths
+    await Global.init();
+    
     // Load configuration
-    log.info("🛡️  Legion v0.1 starting...");
+    log.info(`🛡️  Legion v${version} starting...`);
     const config = await getConfig();
     
     log.info("🔗 Connecting to server", { serverUrl: config.serverUrl });
     
     // Create socket connection
+    // Pass both id and token for faster authentication on server
     const socket: Socket = io(config.serverUrl, {
       auth: {
-        token: config.token,
+        id: config.id, // Token ID for faster lookup (optional)
+        token: config.token, // Secret token for authentication
         type: "legion",
       },
       transports: ["websocket"],

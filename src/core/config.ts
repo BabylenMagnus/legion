@@ -4,8 +4,10 @@ import fs from "fs/promises";
 import { z } from "zod";
 
 // Config schema
+// Matches format written by install scripts: { id, token, serverUrl }
 const ConfigSchema = z.object({
-  token: z.string(),
+  id: z.string().optional(), // Token ID from database (for faster lookup)
+  token: z.string(), // Secret token (lg_xxx format)
   serverUrl: z.string().url(),
 });
 
@@ -65,17 +67,25 @@ export async function getConfig(): Promise<Config> {
   const fileConfig = await loadConfig();
   
   // Fallback to environment variables
-  const token = fileConfig?.token || process.env.LEGION_TOKEN;
+  const id = fileConfig?.id || process.env.LEGION_TOKEN_ID || undefined;
+  const token = fileConfig?.token || process.env.LEGION_TOKEN_SECRET || process.env.LEGION_TOKEN;
   const serverUrl = fileConfig?.serverUrl || process.env.TANUKI_SERVER_URL || "wss://tanuki.sabw.ru";
   
   if (!token) {
     throw new Error(
-      "Legion token not found. Please set LEGION_TOKEN environment variable or configure ~/.tanuki/config.json"
+      "Legion token not found. Please set LEGION_TOKEN_SECRET (or LEGION_TOKEN) environment variable or configure ~/.tanuki/config.json"
     );
   }
   
-  return {
+  const config: Config = {
     token,
     serverUrl,
   };
+  
+  // Include id if available (for faster token lookup on server)
+  if (id) {
+    config.id = id;
+  }
+  
+  return config;
 }
