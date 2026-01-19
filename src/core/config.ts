@@ -34,12 +34,25 @@ export async function ensureConfigDir(): Promise<string> {
  * Load config from file
  */
 export async function loadConfig(): Promise<Config | null> {
-  try {
-    const content = await fs.readFile(CONFIG_FILE, "utf-8");
+  try {    
+    // Read file content
+    let content = await fs.readFile(CONFIG_FILE, "utf-8");
+    
+    // Remove BOM (Byte Order Mark) that Windows PowerShell likes to add
+    content = content.replace(/^\uFEFF/, '');
+    
+    // Parse JSON
     const data = JSON.parse(content);
-    return ConfigSchema.parse(data);
+    // Validate schema
+    const result = ConfigSchema.safeParse(data);
+    
+    if (!result.success) {
+      return null;
+    }
+
+    return result.data;
+
   } catch (error) {
-    // File doesn't exist or invalid format
     return null;
   }
 }
@@ -63,10 +76,11 @@ export async function saveConfig(config: Config): Promise<void> {
  * Get config with fallback to environment variables
  */
 export async function getConfig(): Promise<Config> {
-  // Try loading from file first
   const fileConfig = await loadConfig();
   
-  // Fallback to environment variables
+  // Log whether config was found
+  console.log("[DEBUG] Loaded config object:", fileConfig ? "FOUND" : "NULL");
+
   const id = fileConfig?.id || process.env.LEGION_TOKEN_ID || undefined;
   const token = fileConfig?.token || process.env.LEGION_TOKEN_SECRET || process.env.LEGION_TOKEN;
   const serverUrl = fileConfig?.serverUrl || process.env.TANUKI_SERVER_URL || "wss://tanuki.sabw.ru";
@@ -82,10 +96,31 @@ export async function getConfig(): Promise<Config> {
     serverUrl,
   };
   
-  // Include id if available (for faster token lookup on server)
   if (id) {
     config.id = id;
   }
   
   return config;
+}
+
+/**
+ * Update config file atomically
+ * Merges updates with existing config and validates before saving
+ */
+export async function updateConfig(updates: Partial<Config>): Promise<void> {
+  const currentConfig = await loadConfig();
+  if (!currentConfig) {
+    throw new Error("Cannot update config: config file does not exist");
+  }
+  
+  const updatedConfig: Config = {
+    ...currentConfig,
+    ...updates,
+  };
+  
+  // Validate before saving
+  ConfigSchema.parse(updatedConfig);
+  
+  // Atomic write via saveConfig (already handles permissions 0o600)
+  await saveConfig(updatedConfig);
 }
