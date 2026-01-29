@@ -9,6 +9,7 @@ const ConfigSchema = z.object({
   id: z.string().optional(), // Token ID from database (for faster lookup)
   token: z.string(), // Secret token (lg_xxx format)
   serverUrl: z.string().url(),
+  allowedPaths: z.array(z.string()).optional(), // Whitelist paths for file system access
 });
 
 export type Config = z.infer<typeof ConfigSchema>;
@@ -100,7 +101,23 @@ export async function getConfig(): Promise<Config> {
     config.id = id;
   }
   
+  // Include allowedPaths if present in file config
+  if (fileConfig?.allowedPaths) {
+    config.allowedPaths = fileConfig.allowedPaths;
+  }
+  
   return config;
+}
+
+/**
+ * Get allowed paths from config
+ * Returns whitelist paths or default to home directory
+ */
+export function getAllowedPaths(config: Config): string[] {
+  if (config.allowedPaths && config.allowedPaths.length > 0) {
+    return config.allowedPaths.map(p => path.resolve(p));
+  }
+  return [HOME_DIR];
 }
 
 /**

@@ -19,6 +19,7 @@ import { Log } from "./util/log";
 import { Global } from "./core/global";
 import { getSystemFingerprint } from "./util/fingerprint";
 import { loadConfig, saveConfig } from "./core/config";
+import { setupDispatcher } from "./socket/dispatcher";
 
 /**
  * Parsed command line arguments
@@ -231,6 +232,13 @@ function setupSocketHandlers(
     
     socket.emit("legion:handshake", handshakeData);
     log.debug("📤 Sent handshake", handshakeData);
+    
+    // Setup dispatcher for handling remote commands
+    // Config is already attached to socket in main() via socket context
+    const socketConfig = (socket as any).legionConfig as Config;
+    if (socketConfig) {
+      setupDispatcher(socket, log, socketConfig);
+    }
   });
 
   socket.on("connect_error", (err: any) => {
@@ -409,6 +417,8 @@ async function main() {
       
       // Create new socket with updated config
       currentSocket = createSocket(newConfig);
+      // Attach config to socket for dispatcher access
+      (currentSocket as any).legionConfig = newConfig;
       setupSocketHandlers(currentSocket, log!, fingerprint, version, handleTokenRotation, handleReconnect);
       
       config = newConfig;
@@ -423,6 +433,8 @@ async function main() {
     
     // Create initial socket connection
     currentSocket = createSocket(config);
+    // Attach config to socket for dispatcher access
+    (currentSocket as any).legionConfig = config;
     setupSocketHandlers(currentSocket, log!, fingerprint, version, handleTokenRotation, handleReconnect);
     
     // Keep process alive
