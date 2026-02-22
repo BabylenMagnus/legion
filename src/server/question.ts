@@ -2,7 +2,7 @@ import { Hono } from "hono"
 import { describeRoute, validator } from "hono-openapi"
 import { resolver } from "hono-openapi"
 import { Question } from "../question"
-import z from "zod"
+import z from "zod/v4"
 import { errors } from "./error"
 
 export const QuestionRoute = new Hono()

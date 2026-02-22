@@ -1,7 +1,7 @@
 import { BusEvent } from "@/bus/bus-event"
 import { Bus } from "@/bus"
 import { Instance } from "@/project/instance"
-import z from "zod"
+import z from "zod/v4"
 
 export namespace SessionStatus {
   export const Info = z
@@ -17,6 +17,10 @@ export namespace SessionStatus {
       }),
       z.object({
         type: z.literal("busy"),
+      }),
+      z.object({
+        type: z.literal("error"),
+        message: z.string(),
       }),
     ])
     .meta({

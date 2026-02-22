@@ -3,7 +3,7 @@ import { BusEvent } from "@/bus/bus-event"
 import { Identifier } from "@/id/id"
 import { Instance } from "@/project/instance"
 import { Log } from "@/util/log"
-import z from "zod"
+import z from "zod/v4"
 
 export namespace Question {
   const log = Log.create({ service: "question" })

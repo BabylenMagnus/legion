@@ -2,7 +2,7 @@ import { Bus } from "../bus"
 import { File } from "../file"
 import { Log } from "../util/log"
 import path from "path"
-import z from "zod"
+import z from "zod/v4"
 
 import * as Formatter from "./formatter"
 import { Config } from "../config/config"

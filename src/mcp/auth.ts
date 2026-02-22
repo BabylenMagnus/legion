@@ -1,6 +1,6 @@
 import path from "path"
 import fs from "fs/promises"
-import z from "zod"
+import z from "zod/v4"
 import { Global } from "../global"
 
 export namespace McpAuth {

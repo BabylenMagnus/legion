@@ -3,7 +3,7 @@ import { describeRoute, validator } from "hono-openapi"
 import { resolver } from "hono-openapi"
 import { Instance } from "../project/instance"
 import { Project } from "../project/project"
-import z from "zod"
+import z from "zod/v4"
 import { errors } from "./error"
 
 export const ProjectRoute = new Hono()

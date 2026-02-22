@@ -1,6 +1,6 @@
 import { BusEvent } from "@/bus/bus-event"
 import { Bus } from "@/bus"
-import z from "zod"
+import z from "zod/v4"
 import { Storage } from "../storage/storage"
 
 export namespace Todo {

@@ -17,6 +17,9 @@ import { clone, mergeDeep, pipe } from "remeda"
 import { ProviderTransform } from "@/provider/transform"
 import { Config } from "@/config/config"
 import { Instance } from "@/project/instance"
+import { getConfig as getLegionConfig } from "@/core/config"
+import { getLegionSocket } from "@/core/legion-socket"
+import * as SocketProvider from "@/provider/socket-provider"
 import type { Agent } from "@/agent/agent"
 import type { MessageV2 } from "./message-v2"
 import { Plugin } from "@/plugin"
@@ -41,6 +44,8 @@ export namespace LLM {
     small?: boolean
     tools: Record<string, Tool>
     retries?: number
+    /** For Socket Provider: used to map usage events back to assistant message */
+    assistantMessageID?: string
   }
 
   export type StreamOutput = StreamTextResult<ToolSet, unknown>
@@ -57,6 +62,39 @@ export namespace LLM {
       modelID: input.model.id,
       providerID: input.model.providerID,
     })
+
+    // Tanuki Cloud mode: delegate LLM to API via WebSocket
+    const legionConfig = await getLegionConfig().catch(() => null)
+    const socket = getLegionSocket()
+    if (legionConfig && socket && shouldUseSocketProvider(legionConfig, input.model)) {
+      const system = SystemPrompt.header(input.model.providerID)
+      system.push(
+        [
+          ...(input.agent.prompt ? [input.agent.prompt] : SystemPrompt.provider(input.model)),
+          ...input.system,
+          ...(input.user.system ? [input.user.system] : []),
+        ]
+          .filter((x) => x)
+          .join("\n"),
+      )
+      const header = system[0]
+      const original = clone(system)
+      await Plugin.trigger("experimental.chat.system.transform", { sessionID: input.sessionID }, { system })
+      if (system.length === 0) {
+        system.push(...original)
+      }
+      if (system.length > 2 && system[0] === header) {
+        const rest = system.slice(1)
+        system.length = 0
+        system.push(header, rest.join("\n"))
+      }
+      const messages: ModelMessage[] = [
+        ...system.map((x): ModelMessage => ({ role: "system", content: x })),
+        ...input.messages,
+      ]
+      return SocketProvider.stream(socket, { ...input, messages })
+    }
+
     const [language, cfg, provider, auth] = await Promise.all([
       Provider.getLanguage(input.model),
       Config.get(),
@@ -263,6 +301,18 @@ export namespace LLM {
       }
     }
     return input.tools
+  }
+
+  function shouldUseSocketProvider(
+    legionConfig: Awaited<ReturnType<typeof getLegionConfig>> | null,
+    model: Provider.Model
+  ): boolean {
+    if (!legionConfig) return false
+    // Standalone: model has explicit base_url different from Tanuki server
+    const modelUrl = (model.api as { url?: string }).url
+    if (modelUrl && modelUrl !== legionConfig.serverUrl) return false
+    // Cloud: serverUrl and token configured
+    return !!legionConfig.serverUrl && !!legionConfig.token
   }
 
   // Check if messages contain any tool-call content

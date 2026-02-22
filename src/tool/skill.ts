@@ -1,5 +1,5 @@
 import path from "path"
-import z from "zod"
+import z from "zod/v4"
 import { Tool } from "./tool"
 import { Skill } from "../skill"
 import { ConfigMarkdown } from "../config/markdown"

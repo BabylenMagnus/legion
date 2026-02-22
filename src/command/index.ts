@@ -1,5 +1,5 @@
 import { BusEvent } from "@/bus/bus-event"
-import z from "zod"
+import z from "zod/v4"
 import { Config } from "../config/config"
 import { Instance } from "../project/instance"
 import { Identifier } from "../id/id"

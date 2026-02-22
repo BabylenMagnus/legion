@@ -1,5 +1,5 @@
 import { resolver } from "hono-openapi"
-import z from "zod"
+import z from "zod/v4"
 import { Storage } from "../storage/storage"
 
 export const ERRORS = {

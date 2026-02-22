@@ -9,10 +9,10 @@ import { stream, streamSSE } from "hono/streaming"
 import { proxy } from "hono/proxy"
 import { basicAuth } from "hono/basic-auth"
 import { Session } from "../session"
-import z from "zod"
+import z from "zod/v4"
 import { Provider } from "../provider/provider"
 import { filter, mapValues, sortBy, pipe } from "remeda"
-import { NamedError } from "@opencode-ai/util/error"
+import { NamedError } from "@/util/error"
 import { ModelsDev } from "../provider/models"
 import { Ripgrep } from "../file/ripgrep"
 import { Config } from "../config/config"
@@ -32,7 +32,6 @@ import { ProviderAuth } from "../provider/auth"
 import { Global } from "../global"
 import { ProjectRoute } from "./project"
 import { ToolRegistry } from "../tool/registry"
-import { zodToJsonSchema } from "zod-to-json-schema"
 import { SessionPrompt } from "../session/prompt"
 import { SessionCompaction } from "../session/compaction"
 import { SessionRevert } from "../session/revert"
@@ -565,7 +564,10 @@ export namespace Server {
                 id: t.id,
                 description: t.description,
                 // Handle both Zod schemas and plain JSON schemas
-                parameters: (t.parameters as any)?._def ? zodToJsonSchema(t.parameters as any) : t.parameters,
+                parameters:
+                  (t.parameters as any)?._def || (t.parameters as any)?._zod
+                    ? z.toJSONSchema(t.parameters as any)
+                    : t.parameters,
               })),
             )
           },

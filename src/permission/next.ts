@@ -7,7 +7,7 @@ import { Storage } from "@/storage/storage"
 import { fn } from "@/util/fn"
 import { Log } from "@/util/log"
 import { Wildcard } from "@/util/wildcard"
-import z from "zod"
+import z from "zod/v4"
 
 export namespace PermissionNext {
   const log = Log.create({ service: "permission" })

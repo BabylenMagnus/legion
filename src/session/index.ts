@@ -1,9 +1,9 @@
-import { Slug } from "@opencode-ai/util/slug"
+import { Slug } from "@/util/slug"
 import path from "path"
 import { BusEvent } from "@/bus/bus-event"
 import { Bus } from "@/bus"
 import { Decimal } from "decimal.js"
-import z from "zod"
+import z from "zod/v4"
 import { type LanguageModelUsage, type ProviderMetadata } from "ai"
 import { Config } from "../config/config"
 import { Flag } from "../flag/flag"
@@ -408,6 +408,38 @@ export namespace Session {
     })
     return part
   })
+
+  /** Mark assistant message as sent via Tanuki API for local audit trail */
+  export async function recordUsageFromCloud(input: {
+    sessionID: string
+    messageID: string
+    requestId: string
+    tokens: { input?: number; output?: number; reasoning?: number }
+    cost?: number
+  }): Promise<void> {
+    const msg = await Storage.read<MessageV2.Info>(["message", input.sessionID, input.messageID])
+    if (!msg || msg.role !== "assistant") return
+    const assistant = msg as MessageV2.Assistant
+    const tokens = input.tokens
+    const updated: MessageV2.Info = {
+      ...msg,
+      metadata: {
+        ...(assistant.metadata as Record<string, unknown> | undefined),
+        via_cloud: true,
+        cloud_usage: tokens,
+      },
+      ...(input.cost !== undefined && { cost: assistant.cost + input.cost }),
+      ...(tokens && {
+        tokens: {
+          ...assistant.tokens,
+          input: assistant.tokens.input + (tokens.input ?? 0),
+          output: assistant.tokens.output + (tokens.output ?? 0),
+          reasoning: assistant.tokens.reasoning + (tokens.reasoning ?? 0),
+        },
+      }),
+    }
+    await updateMessage(updated)
+  }
 
   export const getUsage = fn(
     z.object({

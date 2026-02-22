@@ -1,6 +1,6 @@
 import { Hono, type Context } from "hono"
 import { describeRoute, resolver, validator } from "hono-openapi"
-import { z } from "zod"
+import { z } from "zod/v4"
 import { AsyncQueue } from "../util/queue"
 
 const TuiRequest = z.object({

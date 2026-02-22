@@ -1,4 +1,4 @@
-import z from "zod"
+import z from "zod/v4"
 import type { MessageV2 } from "../session/message-v2"
 import type { Agent } from "../agent/agent"
 import type { PermissionNext } from "../permission/next"

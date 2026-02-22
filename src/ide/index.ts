@@ -1,8 +1,8 @@
 import { BusEvent } from "@/bus/bus-event"
 import { Bus } from "@/bus"
 import { spawn } from "bun"
-import z from "zod"
-import { NamedError } from "@opencode-ai/util/error"
+import z from "zod/v4"
+import { NamedError } from "@/util/error"
 import { Log } from "../util/log"
 
 const SUPPORTED_IDES = [

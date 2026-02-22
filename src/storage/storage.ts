@@ -6,8 +6,8 @@ import { Filesystem } from "../util/filesystem"
 import { lazy } from "../util/lazy"
 import { Lock } from "../util/lock"
 import { $ } from "bun"
-import { NamedError } from "@opencode-ai/util/error"
-import z from "zod"
+import { NamedError } from "@/util/error"
+import z from "zod/v4"
 
 export namespace Storage {
   const log = Log.create({ service: "storage" })

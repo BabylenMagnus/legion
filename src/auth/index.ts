@@ -1,7 +1,7 @@
 import path from "path"
 import { Global } from "../global"
 import fs from "fs/promises"
-import z from "zod"
+import z from "zod/v4"
 
 export const OAUTH_DUMMY_KEY = "opencode-oauth-dummy-key"
 

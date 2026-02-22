@@ -1,6 +1,6 @@
-import { NamedError } from "@opencode-ai/util/error"
+import { NamedError } from "@/util/error"
 import matter from "gray-matter"
-import { z } from "zod"
+import { z } from "zod/v4"
 
 export namespace ConfigMarkdown {
   export const FILE_REGEX = /(?<![\w`])@(\.?[^\s`,.]*(?:\.[^\s`,.]+)*)/g

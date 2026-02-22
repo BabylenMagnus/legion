@@ -1,6 +1,6 @@
 import { BusEvent } from "@/bus/bus-event"
-import z from "zod"
-import { NamedError } from "@opencode-ai/util/error"
+import z from "zod/v4"
+import { NamedError } from "@/util/error"
 import { APICallError, convertToModelMessages, LoadAPIKeyError, type ModelMessage, type UIMessage } from "ai"
 import { Identifier } from "../id/id"
 import { LSP } from "../lsp"
@@ -385,6 +385,13 @@ export namespace MessageV2 {
       }),
     }),
     finish: z.string().optional(),
+    /** Mark messages sent via Tanuki API for audit (redundant copy in cloud) */
+    metadata: z
+      .object({
+        via_cloud: z.boolean().optional(),
+        cloud_usage: z.record(z.string(), z.number()).optional(),
+      })
+      .optional(),
   }).meta({
     ref: "AssistantMessage",
   })

@@ -1,5 +1,5 @@
 import { Config } from "../config/config"
-import z from "zod"
+import z from "zod/v4"
 import { Provider } from "../provider/provider"
 import { generateObject, type ModelMessage } from "ai"
 import { SystemPrompt } from "../session/system"

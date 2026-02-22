@@ -49,3 +49,24 @@ export async function bindProject(
   log.info("Project bound", { path: resolved, projectId });
   return projectFile;
 }
+
+/**
+ * Search for .tanuki/project.json in current directory and parents.
+ * Returns project_id for billing when working via Tanuki Cloud.
+ */
+export async function getProjectId(directory: string): Promise<string | null> {
+  let current = path.resolve(directory);
+  const root = path.parse(current).root;
+
+  while (current !== root) {
+    const configPath = path.join(current, ".tanuki", "project.json");
+    try {
+      const content = await fs.readFile(configPath, "utf-8");
+      const config = JSON.parse(content) as ProjectConfig;
+      return config.id;
+    } catch {
+      current = path.dirname(current);
+    }
+  }
+  return null;
+}

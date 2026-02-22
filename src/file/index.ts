@@ -1,5 +1,5 @@
 import { BusEvent } from "@/bus/bus-event"
-import z from "zod"
+import z from "zod/v4"
 import { $ } from "bun"
 import type { BunFile } from "bun"
 import { formatPatch, structuredPatch } from "diff"

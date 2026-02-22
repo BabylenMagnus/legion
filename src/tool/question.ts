@@ -1,4 +1,4 @@
-import z from "zod"
+import z from "zod/v4"
 import { Tool } from "./tool"
 import { Question } from "../question"
 import DESCRIPTION from "./question.txt"

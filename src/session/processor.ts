@@ -50,7 +50,10 @@ export namespace SessionProcessor {
           try {
             let currentText: MessageV2.TextPart | undefined
             let reasoningMap: Record<string, MessageV2.ReasoningPart> = {}
-            const stream = await LLM.stream(streamInput)
+            const stream = await LLM.stream({
+              ...streamInput,
+              assistantMessageID: input.assistantMessage.id,
+            })
 
             for await (const value of stream.fullStream) {
               input.abort.throwIfAborted()
@@ -337,6 +340,27 @@ export namespace SessionProcessor {
               if (needsCompaction) break
             }
           } catch (e: any) {
+            if (e?.message === "Insufficient funds") {
+              if (snapshot) {
+                const patch = await Snapshot.patch(snapshot)
+                if (patch.files.length) {
+                  await Session.updatePart({
+                    id: Identifier.ascending("part"),
+                    messageID: input.assistantMessage.id,
+                    sessionID: input.sessionID,
+                    type: "patch",
+                    hash: patch.hash,
+                    files: patch.files,
+                  })
+                }
+              }
+              input.assistantMessage.time.completed = Date.now()
+              input.assistantMessage.error = MessageV2.fromError(e, { providerID: input.model.providerID })
+              await Session.updateMessage(input.assistantMessage)
+              SessionStatus.set(input.sessionID, { type: "error", message: "Insufficient funds" })
+              console.error("⛔ Баланс Tanuki Cloud исчерпан. Пополните счет в админ-панели.")
+              return "stop"
+            }
             log.error("process", {
               error: e,
               stack: JSON.stringify(e.stack),

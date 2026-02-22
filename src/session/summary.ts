@@ -1,7 +1,7 @@
 import { Provider } from "@/provider/provider"
 
 import { fn } from "@/util/fn"
-import z from "zod"
+import z from "zod/v4"
 import { Session } from "."
 
 import { MessageV2 } from "./message-v2"

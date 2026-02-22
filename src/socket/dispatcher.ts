@@ -4,6 +4,8 @@ import { Config } from "../core/config";
 import { handleFsList } from "./handlers/fs-list";
 import { handleFsRead } from "./handlers/fs-read";
 import { handleProjectBind } from "./handlers/project-bind";
+import { requestRegistry } from "../provider/socket-provider";
+import { Session } from "../session";
 
 export interface SocketRequest {
   id: string;
@@ -20,9 +22,9 @@ export interface SocketResponse {
 export type Handler = (req: SocketRequest, socket: Socket) => Promise<SocketResponse>;
 
 export const handlers: Record<string, Handler> = {
-  "legion:fs:list": handleFsList,
-  "legion:fs:read": handleFsRead,
-  "legion:project:bind": handleProjectBind,
+  "fs:list": handleFsList,
+  "fs:read": handleFsRead,
+  "project:bind": handleProjectBind,
 };
 
 /**
@@ -41,10 +43,10 @@ export function setupDispatcher(
     socket.on(event, async (request: SocketRequest) => {
       try {
         const response = await handler(request, socket);
-        socket.emit(`${event}:response`, response);
+        socket.emit(`${event}:result`, response);
       } catch (error) {
         log.error(`Handler error for ${event}`, { error, request });
-        socket.emit(`${event}:response`, {
+        socket.emit(`${event}:result`, {
           id: request.id,
           status: "error",
           error: error instanceof Error ? error.message : "Unknown error",
@@ -52,6 +54,32 @@ export function setupDispatcher(
       }
     });
   }
-  
+
+  // LLM streaming events (API -> Legion, one-way)
+  socket.on("legion:llm:usage", (data: { requestId: string; tokens: any; cost?: number }) => {
+    log.debug("llm:usage", { requestId: data.requestId, tokens: data.tokens });
+    const entry = requestRegistry.get(data.requestId);
+    if (entry) {
+      Session.recordUsageFromCloud({
+        sessionID: entry.sessionID,
+        messageID: entry.messageID,
+        requestId: data.requestId,
+        tokens: data.tokens,
+        cost: data.cost,
+      }).catch((err: Error) => log.error("recordUsageFromCloud failed", { error: err }));
+    }
+  });
+
+  socket.on("legion:llm:error", (data: { requestId: string; error: string }) => {
+    if (data.error === "Insufficient funds") {
+      console.error("⛔ Баланс Tanuki Cloud исчерпан. Пополните счет в админ-панели.");
+    }
+    log.error("llm:error", { requestId: data.requestId, error: data.error });
+  });
+
+  socket.on("legion:llm:done", (data: { requestId: string }) => {
+    log.debug("llm:done", { requestId: data.requestId });
+  });
+
   log.info("Socket dispatcher initialized", { events: Object.keys(handlers) });
 }

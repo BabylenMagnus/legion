@@ -1,6 +1,6 @@
 #!/usr/bin/env bun
 
-import { z } from "zod"
+import { z } from "zod/v4"
 import { Config } from "../src/config/config"
 
 const file = process.argv[2]
@@ -15,7 +15,7 @@ const result = z.toJSONSchema(Config.Info, {
    *
    * See https://json-schema.org/draft/2020-12/draft-bhutton-json-schema-validation-00#rfc.section.9.5
    */
-  override(ctx) {
+  override(ctx: { jsonSchema: Record<string, unknown>; zodSchema: unknown }) {
     const schema = ctx.jsonSchema
 
     // Preserve strictness: set additionalProperties: false for objects
