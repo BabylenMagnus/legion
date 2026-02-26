@@ -1,9 +1,7 @@
 import fs from "fs/promises";
 import path from "path";
 import type { BunFile } from "bun";
-import { Log } from "../util/log";
-
-const log = Log.create({ service: "file.legion-bridge" });
+import { Ripgrep } from "./ripgrep";
 
 export interface FileNode {
   name: string;
@@ -22,45 +20,37 @@ export interface FileContent {
 }
 
 /**
- * List files in a directory without Instance context
+ * List files recursively up to depth
+ * Returns flat list (directories first by name, then files)
  */
 export async function listFiles(targetPath: string, depth: number = 1): Promise<FileNode[]> {
   const resolved = path.resolve(targetPath);
-  const exclude = [".git", ".DS_Store", ".tanuki"];
-  
   const nodes: FileNode[] = [];
-  
-  try {
-    const entries = await fs.readdir(resolved, { withFileTypes: true });
-    
-    for (const entry of entries) {
-      if (exclude.includes(entry.name)) continue;
-      
-      const fullPath = path.join(resolved, entry.name);
-      const isDirectory = entry.isDirectory();
-      
-      const node: FileNode = {
-        name: entry.name,
-        path: fullPath,
-        type: isDirectory ? "directory" : "file",
-      };
-      
-      if (!isDirectory) {
-        try {
-          const stats = await fs.stat(fullPath);
-          node.size = stats.size;
-        } catch {
-          // Ignore stat errors
-        }
+  const seenDirs = new Set<string>();
+
+  for await (const relPath of Ripgrep.files({ cwd: resolved, maxDepth: depth })) {
+    const fullPath = path.resolve(resolved, relPath);
+
+    // Reconstruct intermediate directory nodes from path segments
+    const parts = relPath.split(/[\\/]/);
+    for (let i = 1; i < parts.length; i++) {
+      const dirRel = parts.slice(0, i).join(path.sep);
+      const dirFull = path.resolve(resolved, dirRel);
+      if (!seenDirs.has(dirFull)) {
+        seenDirs.add(dirFull);
+        nodes.push({ name: parts[i - 1], path: dirFull, type: "directory" });
       }
-      
-      nodes.push(node);
     }
-  } catch (error) {
-    log.error("Failed to list directory", { error, targetPath });
-    throw error;
+
+    // File node with size
+    try {
+      const stats = await fs.stat(fullPath);
+      nodes.push({ name: path.basename(relPath), path: fullPath, type: "file", size: stats.size });
+    } catch {
+      continue;
+    }
   }
-  
+
   return nodes.sort((a, b) => {
     if (a.type !== b.type) {
       return a.type === "directory" ? -1 : 1;

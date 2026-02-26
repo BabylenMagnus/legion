@@ -2,6 +2,7 @@ import os from "os";
 import path from "path";
 import fs from "fs/promises";
 import { z } from "zod";
+import { getProjectId } from "../project/binding";
 
 // Config schema
 // Matches format written by install scripts: { id, token, serverUrl }
@@ -10,6 +11,7 @@ const ConfigSchema = z.object({
   token: z.string(), // Secret token (lg_xxx format)
   serverUrl: z.string().url(),
   allowedPaths: z.array(z.string()).optional(), // Whitelist paths for file system access
+  allowParents: z.boolean().optional(),
 });
 
 export type Config = z.infer<typeof ConfigSchema>;
@@ -105,7 +107,10 @@ export async function getConfig(): Promise<Config> {
   if (fileConfig?.allowedPaths) {
     config.allowedPaths = fileConfig.allowedPaths;
   }
-  
+  if (fileConfig?.allowParents !== undefined) {
+    config.allowParents = fileConfig.allowParents;
+  }
+
   return config;
 }
 
@@ -140,4 +145,12 @@ export async function updateConfig(updates: Partial<Config>): Promise<void> {
   
   // Atomic write via saveConfig (already handles permissions 0o600)
   await saveConfig(updatedConfig);
+}
+
+/**
+ * Get the project ID for the current working directory.
+ * Used by the SocketProvider to tag LLM requests.
+ */
+export async function getCurrentProjectId(): Promise<string | null> {
+  return getProjectId(process.cwd());
 }

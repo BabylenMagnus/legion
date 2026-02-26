@@ -21,6 +21,8 @@ export interface SocketResponse {
 
 export type Handler = (req: SocketRequest, socket: Socket) => Promise<SocketResponse>;
 
+const ROUTING_KEYS = ["client_sid", "project_id", "_audit_log_id"] as const;
+
 export const handlers: Record<string, Handler> = {
   "fs:list": handleFsList,
   "fs:read": handleFsRead,
@@ -38,15 +40,26 @@ export function setupDispatcher(
 ): void {
   // Attach config to socket for handlers to access
   (socket as any).legionConfig = config;
-  
+
+  // Remove old listeners to avoid duplication on reconnect
+  for (const event of Object.keys(handlers)) {
+    socket.off(event);
+  }
+
   for (const [event, handler] of Object.entries(handlers)) {
     socket.on(event, async (request: SocketRequest) => {
+      log.info(`Executing handler for: ${event}`, { requestId: request.id });
+      const routing = Object.fromEntries(
+        ROUTING_KEYS.filter((k) => k in request).map((k) => [k, request[k]])
+      );
       try {
         const response = await handler(request, socket);
-        socket.emit(`${event}:result`, response);
+        log.info(`Handler success: ${event}`, { requestId: request.id });
+        socket.emit(`${event}:result`, { ...routing, ...response });
       } catch (error) {
         log.error(`Handler error for ${event}`, { error, request });
         socket.emit(`${event}:result`, {
+          ...routing,
           id: request.id,
           status: "error",
           error: error instanceof Error ? error.message : "Unknown error",

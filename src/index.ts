@@ -13,6 +13,7 @@ if (process.argv.includes("--version") || process.argv.includes("-v")) {
 // Heavy imports after version check
 import { io } from "socket.io-client";
 import { type Socket } from "socket.io-client";
+import path from "path";
 import * as os from "os";
 import { getConfig, updateConfig, type Config, CONFIG_FILE } from "./core/config";
 import { Log } from "./util/log";
@@ -217,6 +218,10 @@ function setupSocketHandlers(
   onTokenRotation: () => Promise<void>,
   onReconnect: () => Promise<void>
 ): void {
+  socket.onAny((event, ...args) => {
+    log.info(`SOCKET INCOMING: ${event}`, { args });
+  });
+
   socket.on("connect", () => {
     log.info("✅ Connected to server", { socketId: socket.id });
     
@@ -390,7 +395,27 @@ async function main() {
     // Load configuration
     log!.info(`🛡️  Legion v${version} starting...`);
     let config = await getConfig();
-    
+
+    if (config.allowParents) {
+      const currentDir = process.cwd();
+      const parentDir = path.resolve(currentDir, "..");
+      const { root } = path.parse(currentDir);
+      const isRoot = path.relative(parentDir, root) === "";
+
+      if (!isRoot) {
+        const currentPaths = config.allowedPaths || [];
+        if (currentPaths.length === 0) currentPaths.push(currentDir);
+        if (!currentPaths.includes(parentDir)) {
+          const newPaths = [...currentPaths, parentDir];
+          await updateConfig({ allowedPaths: newPaths });
+          log!.info("Added parent directory to whitelist", { parentDir });
+          config.allowedPaths = newPaths;
+        }
+      } else {
+        log!.warn("Security: Refused to add system root as allowed parent path");
+      }
+    }
+
     log!.info("🔗 Connecting to server", { serverUrl: config.serverUrl });
     
     // Track current socket and token rotation state

@@ -1,6 +1,6 @@
 {
   "name": "@babylen/legion",
-  "version": "0.1.6",
+  "version": "0.1.7",
   "description": "Legion agent for connecting devices to Tanuki Cloud",
   "main": "./dist/index.js",
   "keywords": [
