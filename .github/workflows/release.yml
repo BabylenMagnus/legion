@@ -1,0 +1,60 @@
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        include:
+          - os: windows-latest
+            target: bun-windows-x64
+            artifact: legion.exe
+          - os: ubuntu-latest
+            target: bun-linux-x64
+            artifact: legion
+          - os: macos-latest
+            target: bun-darwin-arm64
+            artifact: legion
+
+    runs-on: ${{ matrix.os }}
+    
+    steps:
+      - uses: actions/checkout@v6
+      
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      
+      - run: bun install
+      - name: Build binary
+        run: |
+          bun build ./src/index.ts --compile --target=${{ matrix.target }} --outfile ${{ matrix.artifact }}
+      
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.target }}
+          path: ${{ matrix.artifact }}
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    
+    steps:
+      - uses: actions/download-artifact@v4
+      
+      - run: |
+          mv bun-windows-x64/legion.exe legion-windows-x64.exe
+          mv bun-linux-x64/legion legion-linux-x64
+          mv bun-darwin-arm64/legion legion-darwin-arm64
+          chmod +x legion-*
+      
+      - uses: softprops/action-gh-release@v1
+        with:
+          files: legion-*
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

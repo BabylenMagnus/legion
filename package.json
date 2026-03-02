@@ -22,7 +22,6 @@
   "scripts": {
     "dev": "bun run --conditions=browser ./src/index.ts",
     "build": "bun build ./src/index.ts --outdir ./dist --target bun",
-    "prepublishOnly": "npm run build",
     "typecheck": "tsc --noEmit",
     "test": "bun test"
   },
