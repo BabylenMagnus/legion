@@ -13,7 +13,7 @@ jobs:
             target: bun-windows-x64
             artifact: legion.exe
           - os: ubuntu-latest
-            target: bun-linux-x64
+            target: bun-linux-x64-baseline
             artifact: legion
           - os: macos-latest
             target: bun-darwin-arm64
@@ -45,11 +45,11 @@ jobs:
       contents: write
     
     steps:
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v6
       
       - run: |
           mv bun-windows-x64/legion.exe legion-windows-x64.exe
-          mv bun-linux-x64/legion legion-linux-x64
+          mv bun-linux-x64-baseline/legion legion-linux-x64
           mv bun-darwin-arm64/legion legion-darwin-arm64
           chmod +x legion-*
       
