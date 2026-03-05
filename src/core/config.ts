@@ -18,7 +18,7 @@ export type Config = z.infer<typeof ConfigSchema>;
 
 // Paths
 const HOME_DIR = os.homedir();
-export const CONFIG_DIR = path.join(HOME_DIR, ".tanuki");
+export const CONFIG_DIR = path.join(HOME_DIR, ".legion");
 export const CONFIG_FILE = path.join(CONFIG_DIR, "config.json");
 
 /**
@@ -90,7 +90,7 @@ export async function getConfig(): Promise<Config> {
   
   if (!token) {
     throw new Error(
-      "Legion token not found. Please set LEGION_TOKEN_SECRET (or LEGION_TOKEN) environment variable or configure ~/.tanuki/config.json"
+      "Legion token not found. Please set LEGION_TOKEN_SECRET (or LEGION_TOKEN) environment variable or configure ~/.legion/config.json"
     );
   }
   

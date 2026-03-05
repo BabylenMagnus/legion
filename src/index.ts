@@ -255,7 +255,7 @@ function setupSocketHandlers(
     // Check if it's an authentication error
     if (err.message.includes("auth") || err.message.includes("token")) {
       log.error("🔐 Authentication failed. Please check your token.");
-      log.error("💡 Re-authenticate by updating ~/.tanuki/config.json or LEGION_TOKEN env var");
+      log.error("💡 Re-authenticate by updating ~/.legion/config.json or LEGION_TOKEN env var");
       // Enter hibernation mode instead of exiting
       enterHibernationMode(log, CONFIG_FILE, onReconnect).catch((error) => {
         log.error("❌ Hibernation mode failed", { error });
@@ -494,7 +494,7 @@ async function main() {
       console.error("\n❌", error.message);
       console.error("\n💡 Make sure you have configured your token:");
       console.error("   - Set LEGION_TOKEN environment variable, or");
-      console.error("   - Create ~/.tanuki/config.json with your token");
+      console.error("   - Create ~/.legion/config.json with your token");
     } else {
       safeLog.error("Failed to start Legion", { error });
       console.error("\n❌ Unknown error occurred");

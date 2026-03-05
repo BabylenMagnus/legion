@@ -7,10 +7,10 @@ import fs from "fs/promises";
 const app = "legion";
 
 const HOME_DIR = os.homedir();
-const data = path.join(HOME_DIR, ".tanuki", "legion");
-const cache = path.join(HOME_DIR, ".tanuki", "legion", "cache");
-const config = path.join(HOME_DIR, ".tanuki");
-const state = path.join(HOME_DIR, ".tanuki", "legion", "state");
+const data = path.join(HOME_DIR, ".legion", "data");
+const cache = path.join(HOME_DIR, ".legion", "data", "cache");
+const config = path.join(HOME_DIR, ".legion");
+const state = path.join(HOME_DIR, ".legion", "data", "state");
 
 export namespace Global {
   export const Path = {

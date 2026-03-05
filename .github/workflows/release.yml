@@ -9,33 +9,30 @@ jobs:
     strategy:
       matrix:
         include:
-          - os: windows-latest
-            target: bun-windows-x64
-            artifact: legion.exe
           - os: ubuntu-latest
-            target: bun-linux-x64
-            artifact: legion
+            target: bun-linux-x64-baseline
+            artifact: legion-linux-x64
           - os: macos-latest
             target: bun-darwin-arm64
-            artifact: legion
+            artifact: legion-darwin-arm64
 
     runs-on: ${{ matrix.os }}
-    
+
     steps:
-      - uses: actions/checkout@v6
-      
+      - uses: actions/checkout@v4
+
       - uses: oven-sh/setup-bun@v2
         with:
           bun-version: latest
-      
+
       - run: bun install
+
       - name: Build binary
-        run: |
-          bun build ./src/index.ts --compile --target=${{ matrix.target }} --outfile ${{ matrix.artifact }}
-      
+        run: bun build ./src/index.ts --compile --target=${{ matrix.target }} --outfile ${{ matrix.artifact }}
+
       - uses: actions/upload-artifact@v4
         with:
-          name: ${{ matrix.target }}
+          name: ${{ matrix.artifact }}
           path: ${{ matrix.artifact }}
 
   release:
@@ -43,18 +40,21 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
-    
+
     steps:
       - uses: actions/download-artifact@v4
-      
+
       - run: |
-          mv bun-windows-x64/legion.exe legion-windows-x64.exe
-          mv bun-linux-x64/legion legion-linux-x64
-          mv bun-darwin-arm64/legion legion-darwin-arm64
-          chmod +x legion-*
-      
+          mv legion-linux-x64/legion-linux-x64 legion-linux-x64-bin
+          mv legion-darwin-arm64/legion-darwin-arm64 legion-darwin-arm64-bin
+          mv legion-linux-x64-bin legion-linux-x64
+          mv legion-darwin-arm64-bin legion-darwin-arm64
+          chmod +x legion-linux-x64 legion-darwin-arm64
+
       - uses: softprops/action-gh-release@v1
         with:
-          files: legion-*
+          files: |
+            legion-linux-x64
+            legion-darwin-arm64
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
