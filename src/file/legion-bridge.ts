@@ -1,7 +1,6 @@
 import fs from "fs/promises";
 import path from "path";
 import type { BunFile } from "bun";
-import { Ripgrep } from "./ripgrep";
 
 export interface FileNode {
   name: string;
@@ -20,41 +19,34 @@ export interface FileContent {
 }
 
 /**
- * List files recursively up to depth
- * Returns flat list (directories first by name, then files)
+ * List a single directory level — directories first, then files, alphabetically.
+ * Uses fs.readdir so empty directories are always visible.
+ * Hidden entries (dotfiles) are skipped.
  */
-export async function listFiles(targetPath: string, depth: number = 1): Promise<FileNode[]> {
+export async function listFiles(targetPath: string, _depth: number = 1): Promise<FileNode[]> {
   const resolved = path.resolve(targetPath);
+  const entries = await fs.readdir(resolved, { withFileTypes: true });
   const nodes: FileNode[] = [];
-  const seenDirs = new Set<string>();
 
-  for await (const relPath of Ripgrep.files({ cwd: resolved, maxDepth: depth })) {
-    const fullPath = path.resolve(resolved, relPath);
+  for (const entry of entries) {
+    if (entry.name.startsWith(".")) continue;
 
-    // Reconstruct intermediate directory nodes from path segments
-    const parts = relPath.split(/[\\/]/);
-    for (let i = 1; i < parts.length; i++) {
-      const dirRel = parts.slice(0, i).join(path.sep);
-      const dirFull = path.resolve(resolved, dirRel);
-      if (!seenDirs.has(dirFull)) {
-        seenDirs.add(dirFull);
-        nodes.push({ name: parts[i - 1], path: dirFull, type: "directory" });
+    const fullPath = path.join(resolved, entry.name);
+
+    if (entry.isDirectory()) {
+      nodes.push({ name: entry.name, path: fullPath, type: "directory" });
+    } else if (entry.isFile()) {
+      try {
+        const stats = await fs.stat(fullPath);
+        nodes.push({ name: entry.name, path: fullPath, type: "file", size: stats.size });
+      } catch {
+        continue;
       }
-    }
-
-    // File node with size
-    try {
-      const stats = await fs.stat(fullPath);
-      nodes.push({ name: path.basename(relPath), path: fullPath, type: "file", size: stats.size });
-    } catch {
-      continue;
     }
   }
 
   return nodes.sort((a, b) => {
-    if (a.type !== b.type) {
-      return a.type === "directory" ? -1 : 1;
-    }
+    if (a.type !== b.type) return a.type === "directory" ? -1 : 1;
     return a.name.localeCompare(b.name);
   });
 }
