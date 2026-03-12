@@ -1,9 +1,10 @@
 import { type Socket } from "socket.io-client";
 import { Log } from "../util/log";
-import { Config } from "../core/config";
+import type { Config } from "../core/config";
 import { handleFsList } from "./handlers/fs-list";
 import { handleFsRead } from "./handlers/fs-read";
 import { handleProjectBind } from "./handlers/project-bind";
+import { handleFsRoots } from "./handlers/fs-roots";
 import { requestRegistry } from "../provider/socket-provider";
 import { Session } from "../session";
 
@@ -26,6 +27,7 @@ const ROUTING_KEYS = ["client_sid", "project_id", "_audit_log_id"] as const;
 export const handlers: Record<string, Handler> = {
   "fs:list": handleFsList,
   "fs:read": handleFsRead,
+  "fs:roots": handleFsRoots,
   "project:bind": handleProjectBind,
 };
 

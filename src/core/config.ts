@@ -12,6 +12,7 @@ const ConfigSchema = z.object({
   serverUrl: z.string().url(),
   allowedPaths: z.array(z.string()).optional(), // Whitelist paths for file system access
   allowParents: z.boolean().optional(),
+  projects: z.record(z.string(), z.string()).optional(), // projectId → absolute local path
 });
 
 export type Config = z.infer<typeof ConfigSchema>;
@@ -110,6 +111,9 @@ export async function getConfig(): Promise<Config> {
   if (fileConfig?.allowParents !== undefined) {
     config.allowParents = fileConfig.allowParents;
   }
+  if (fileConfig?.projects) {
+    config.projects = fileConfig.projects;
+  }
 
   return config;
 }
@@ -123,6 +127,28 @@ export function getAllowedPaths(config: Config): string[] {
     return config.allowedPaths.map(p => path.resolve(p));
   }
   return [HOME_DIR];
+}
+
+/**
+ * Get the absolute local path bound to a project on this device.
+ * Returns null if the project is not bound.
+ */
+export function getProjectRoot(config: Config, projectId: string): string | null {
+  return config.projects?.[projectId] ?? null;
+}
+
+/**
+ * Persist a projectId → absolutePath binding into config.json.
+ * Also updates the in-memory config object passed in.
+ */
+export async function saveProjectBinding(
+  config: Config,
+  projectId: string,
+  absolutePath: string
+): Promise<void> {
+  const projects = { ...(config.projects ?? {}), [projectId]: absolutePath };
+  await updateConfig({ projects });
+  config.projects = projects; // keep in-memory copy in sync
 }
 
 /**

@@ -1,38 +1,32 @@
-import { SocketRequest, SocketResponse } from "../dispatcher";
+import type { SocketRequest, SocketResponse } from "../dispatcher";
 import { type Socket } from "socket.io-client";
-import { bindProject } from "../../project/binding";
 import { isPathAllowed } from "../../core/path-validator";
-import { getAllowedPaths, Config } from "../../core/config";
+import type { Config } from "../../core/config";
+import { getAllowedPaths, saveProjectBinding } from "../../core/config";
 
 /**
- * Handle project binding request
+ * Handle project binding request.
+ *
+ * Saves { projectId → absolutePath } into ~/.legion/config.json.
+ * The cloud never sees the absolute path — Legion is the sole source of truth.
  */
 export async function handleProjectBind(
   req: SocketRequest,
   socket: Socket
 ): Promise<SocketResponse> {
-  const { path: requestedPath, projectId, projectName } = req;
-  
+  const { path: requestedPath, projectId } = req;
+
   if (!requestedPath) {
-    return {
-      id: req.id,
-      status: "error",
-      error: "Path is required",
-    };
+    return { id: req.id, status: "error", error: "Path is required" };
   }
-  
+
   if (!projectId) {
-    return {
-      id: req.id,
-      status: "error",
-      error: "projectId is required",
-    };
+    return { id: req.id, status: "error", error: "projectId is required" };
   }
-  
-  // Get config from socket context
+
   const config = (socket as any).legionConfig as Config;
   const allowedPaths = getAllowedPaths(config);
-  
+
   if (!isPathAllowed(requestedPath, allowedPaths)) {
     return {
       id: req.id,
@@ -40,14 +34,10 @@ export async function handleProjectBind(
       error: "Access denied: path not in whitelist",
     };
   }
-  
+
   try {
-    const configPath = await bindProject(requestedPath, projectId, projectName);
-    return {
-      id: req.id,
-      status: "ok",
-      data: { configPath },
-    };
+    await saveProjectBinding(config, projectId, requestedPath);
+    return { id: req.id, status: "ok", data: { bound: true, projectId, path: requestedPath } };
   } catch (error) {
     return {
       id: req.id,

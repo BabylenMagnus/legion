@@ -226,6 +226,7 @@ function setupSocketHandlers(
     log.info("✅ Connected to server", { socketId: socket.id });
     
     // Send handshake with device info
+    const socketConfig = (socket as any).legionConfig as Config;
     const handshakeData = {
       fingerprint,
       version,
@@ -233,14 +234,13 @@ function setupSocketHandlers(
       platform: os.platform(),
       release: os.release(),
       cwd: process.cwd(),
+      projects: Object.keys(socketConfig?.projects ?? {}),
     };
     
     socket.emit("legion:handshake", handshakeData);
     log.debug("📤 Sent handshake", handshakeData);
     
     // Setup dispatcher for handling remote commands
-    // Config is already attached to socket in main() via socket context
-    const socketConfig = (socket as any).legionConfig as Config;
     if (socketConfig) {
       setupDispatcher(socket, log, socketConfig);
     }
